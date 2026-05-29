@@ -1,177 +1,179 @@
-const STORAGE_KEY = 'newsPortalData';
+// Хранилище новостей
+let newsData = JSON.parse(localStorage.getItem('admin_news_storage')) || [];
+let currentEditId = null;
 
-// --- Работа с данными ---
-async function loadNews() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-        try {
-            return JSON.parse(stored);
-        } catch (e) {
-            console.error('Ошибка парсинга JSON', e);
-            return await fetchInitial();
-        }
-    } else {
-        return await fetchInitial();
-    }
-}
+// Элементы формы
+const form = document.querySelector('.admin-form');
+const titleInput = document.getElementById('title');
+const categoryInput = document.getElementById('category');
+const contentInput = document.getElementById('content');
 
-async function fetchInitial() {
-    try {
-        const response = await fetch('data.json');
-        if (!response.ok) throw new Error('data.json не найден');
-        const data = await response.json();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        return data;
-    } catch (err) {
-        console.error('Ошибка загрузки начальных данных:', err);
-        return [];
-    }
-}
+const saveBtn = document.getElementById('save-btn');
+const cancelBtn = document.getElementById('cancel-btn');
 
-function saveNews(newsArray) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newsArray));
-}
+const newsList = document.getElementById('news-list');
+const formTitle = document.getElementById('form-title');
 
-function getNextId(newsArray) {
-    return newsArray.length ? Math.max(...newsArray.map(item => item.id)) + 1 : 1;
-}
+// Отрисовка новостей
+function renderNews() {
+    newsList.innerHTML = '';
 
-// --- Отрисовка списка ---
-function renderAdminList(newsArray) {
-    const container = document.getElementById('adminNewsList');
-    if (!newsArray.length) {
-        container.innerHTML = '<p>Новостей пока нет. Добавьте первую.</p>';
+    if (newsData.length === 0) {
+        newsList.innerHTML = `
+            <tr>
+                <td colspan="4">Новостей пока нет</td>
+            </tr>
+        `;
         return;
     }
 
-    const categoryNames = {
-        tech: 'Технологии',
-        politics: 'Политика',
-        sport: 'Спорт',
-        culture: 'Культура',
-        gossip: 'Сплетни'
+    newsData.forEach(news => {
+        const row = document.createElement('tr');
+
+        row.innerHTML = `
+            <td>${news.date}</td>
+            <td><strong>${news.title}</strong></td>
+            <td>
+                <span class="status-badge">
+                    ${getCategoryName(news.category)}
+                </span>
+            </td>
+            <td>
+                <div class="btn-group">
+                    <button class="edit-btn" onclick="editNews(${news.id})">
+                        Редактировать
+                    </button>
+
+                    <button class="delete-btn" onclick="deleteNews(${news.id})">
+                        Удалить
+                    </button>
+                </div>
+            </td>
+        `;
+
+        newsList.appendChild(row);
+    });
+
+    // Сохранение
+    localStorage.setItem(
+        'admin_news_storage',
+        JSON.stringify(newsData)
+    );
+}
+
+// Название категории
+function getCategoryName(category) {
+    switch(category) {
+        case 'politics':
+            return 'Политика';
+
+        case 'tech':
+            return 'Технологии';
+
+        case 'culture':
+            return 'Культура';
+
+        default:
+            return category;
+    }
+}
+
+// Добавление / редактирование
+form.addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const title = titleInput.value.trim();
+    const category = categoryInput.value;
+    const content = contentInput.value.trim();
+
+    if (!title || !content) {
+        alert('Заполните все поля');
+        return;
+    }
+
+    const currentDate = new Date().toLocaleDateString('ru-RU');
+
+    const newsItem = {
+        id: currentEditId || Date.now(),
+        title,
+        category,
+        content,
+        date: currentDate
     };
 
-    let html = '';
-    newsArray.forEach(article => {
-        const catName = categoryNames[article.category] || article.category;
-        html += `
-            <div class="admin-item">
-                <div class="info">
-                    <strong>${escapeHTML(article.title)}</strong>
-                    <div class="meta">
-                        <span class="badge ${article.category}">${catName}</span>
-                        ${article.date} | Автор: ${escapeHTML(article.author)}
-                    </div>
-                </div>
-                <div class="actions">
-                    <button class="btn warning edit-btn" data-id="${article.id}">✏️</button>
-                    <button class="btn danger delete-btn" data-id="${article.id}">🗑️</button>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
+    // Редактирование
+    if (currentEditId) {
+        newsData = newsData.map(item =>
+            item.id === currentEditId ? newsItem : item
+        );
 
-    // Навешиваем обработчики
-    container.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', () => deleteNews(parseInt(btn.dataset.id)));
-    });
-    container.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => startEdit(parseInt(btn.dataset.id)));
-    });
-}
+        currentEditId = null;
 
-function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
+        saveBtn.textContent = 'Опубликовать';
+        formTitle.textContent = 'Добавить новую новость';
 
-// --- CRUD ---
-async function deleteNews(id) {
-    let news = await loadNews();
-    news = news.filter(a => a.id !== id);
-    saveNews(news);
-    renderAdminList(news);
-}
+        cancelBtn.style.display = 'none';
 
-async function startEdit(id) {
-    const news = await loadNews();
-    const article = news.find(a => a.id === id);
-    if (!article) return;
+    } else {
+        // Добавление
+        newsData.unshift(newsItem);
+    }
 
-    document.getElementById('editId').value = article.id;
-    document.getElementById('title').value = article.title;
-    document.getElementById('category').value = article.category;
-    document.getElementById('text').value = article.text;
-    document.getElementById('author').value = article.author;
-    document.getElementById('formTitle').textContent = 'Редактирование новости';
-    document.getElementById('addForm').classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function resetForm() {
-    document.getElementById('newsForm').reset();
-    document.getElementById('editId').value = '';
-    document.getElementById('formTitle').textContent = 'Новая публикация';
-}
-
-// --- Инициализация ---
-document.addEventListener('DOMContentLoaded', async () => {
-    let news = await loadNews();
-    renderAdminList(news);
-
-    document.getElementById('toggleAddFormBtn').addEventListener('click', () => {
-        resetForm();
-        document.getElementById('addForm').classList.toggle('active');
-    });
-
-    document.getElementById('cancelFormBtn').addEventListener('click', () => {
-        document.getElementById('addForm').classList.remove('active');
-        resetForm();
-    });
-
-    document.getElementById('newsForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const editId = document.getElementById('editId').value;
-        const title = document.getElementById('title').value.trim();
-        const category = document.getElementById('category').value;
-        const text = document.getElementById('text').value.trim();
-        const author = document.getElementById('author').value.trim();
-        if (!title || !text || !author) return;
-
-        let newsArray = await loadNews();
-
-        if (editId) {
-            const id = parseInt(editId);
-            const index = newsArray.findIndex(a => a.id === id);
-            if (index !== -1) {
-                newsArray[index] = { ...newsArray[index], title, category, text, author };
-            }
-        } else {
-            const newArticle = {
-                id: getNextId(newsArray),
-                title,
-                category,
-                text,
-                author,
-                date: new Date().toISOString().split('T')[0]
-            };
-            newsArray.push(newArticle);
-        }
-
-        saveNews(newsArray);
-        renderAdminList(newsArray);
-        document.getElementById('addForm').classList.remove('active');
-        resetForm();
-    });
-
-    document.getElementById('resetBtn').addEventListener('click', async () => {
-        if (confirm('Удалить все изменения и вернуть демо-новости?')) {
-            localStorage.removeItem(STORAGE_KEY);
-            const fresh = await fetchInitial();
-            renderAdminList(fresh);
-        }
-    });
+    form.reset();
+    renderNews();
 });
+
+// Удаление
+window.deleteNews = function(id) {
+    const confirmDelete = confirm(
+        'Удалить эту новость?'
+    );
+
+    if (confirmDelete) {
+        newsData = newsData.filter(
+            item => item.id !== id
+        );
+
+        renderNews();
+    }
+};
+
+// Редактирование
+window.editNews = function(id) {
+    const news = newsData.find(
+        item => item.id === id
+    );
+
+    if (!news) return;
+
+    titleInput.value = news.title;
+    categoryInput.value = news.category;
+    contentInput.value = news.content;
+
+    currentEditId = id;
+
+    saveBtn.textContent = 'Сохранить';
+    formTitle.textContent = 'Редактирование новости';
+
+    cancelBtn.style.display = 'inline-block';
+
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+};
+
+// Отмена редактирования
+cancelBtn.addEventListener('click', () => {
+    currentEditId = null;
+
+    form.reset();
+
+    saveBtn.textContent = 'Опубликовать';
+    formTitle.textContent = 'Добавить новую новость';
+
+    cancelBtn.style.display = 'none';
+});
+
+// Первый запуск
+renderNews();

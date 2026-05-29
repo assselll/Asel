@@ -2,26 +2,58 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Новостной портал</title>
+    <title>NewsPortal - Система</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>Новостной портал</h1>
+        <nav class="container">
+            <h1>NewsPortal</h1>
+            <div id="authBlock">
+                <input type="text" id="username" placeholder="Имя пользователя">
+                <select id="userRole">
+                    <option value="reader">Читатель</option>
+                    <option value="editor">Автор</option>
+                </select>
+                <button onclick="login()">Войти</button>
+            </div>
+            <div id="userInfo" class="hidden">
+                <span id="welcomeText"></span>
+                <button onclick="logout()">Выйти</button>
+            </div>
+        </nav>
     </header>
 
-    <div class="container">
-        <div class="news-grid" id="newsContainer"></div>
-    </div>
+    <main class="container">
+        <!-- Секция для Автора -->
+        <section id="editorPanel" class="hidden card">
+            <h3>Создать публикацию</h3>
+            <input type="text" id="newsTitle" placeholder="Заголовок">
+            <select id="newsCategory">
+                <option value="Технологии">Технологии</option>
+                <option value="Спорт">Спорт</option>
+                <option value="Культура">Культура</option>
+                <option value="Политика">Политика</option>
+                <option value="Сплетни">Сплетни</option>
+            </select>
+            <textarea id="newsContent" placeholder="Текст новости"></textarea>
+            <button onclick="addNews()">Опубликовать</button>
+        </section>
 
-    <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2026 NewsPortal. Все права защищены.</p>
-            <p>Свежие новости каждый день.</p>
+        <!-- Фильтры -->
+        <div class="filters">
+            <button onclick="renderNews('all')">Все</button>
+            <button onclick="renderNews('Технологии')">Технологии</button>
+            <button onclick="renderNews('Спорт')">Спорт</button>
+            <button onclick="renderNews('Культура')">Культура</button>
+            <button onclick="renderNews('Политика')">Политика</button>
+            <button onclick="renderNews('Сплетни')">Сплетни</button>
+            <button onclick="renderNews('my-feed')" id="feedBtn" class="hidden">Моя лента</button>
         </div>
-    </footer>
 
-    <script src="script_view.js"></script>
+        <div id="newsContainer" class="news-grid"></div>
+    </main>
+
+    <script src="script.js"></script>
 </body>
 </html>

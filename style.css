@@ -1,212 +1,140 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+:root {
+    /* Новая цветовая палитра */
+    --bg: #fbe6d3;           /* Светлый кремовый (основной фон) */
+    --primary: #4c2b29;      /* Глубокий коричневый (основной текст и акценты) */
+    --accent: #430819;       /* Темный бордовый (кнопки и важные детали) */
+    --secondary: #998170;    /* Теплый серо-коричневый (тени и границы) */
+    
+    /* Дополнительные переменные для неоморфизма и теней */
+    --shadow: 8px 8px 16px #d5c3b3, -8px -8px 16px #ffffff;
+    --inner-shadow: inset 4px 4px 8px #d5c3b3, inset -4px -4px 8px #ffffff;
+    --border-radius: 20px;
 }
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f4f4f4;
+    margin: 0;
+    background: var(--bg);
+    color: var(--primary);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 header {
-    background: #894980;
-    color: white;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-header h1 {
-    font-size: 1.5rem;
-}
-
-.btn {
-    background: #7d2675;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    text-decoration: none;
-    display: inline-block;
-    transition: background 0.2s;
-}
-
-.btn:hover {
-    background: #2980b9;
-}
-
-.btn.danger {
-    background: #e74c3c;
-}
-
-.btn.danger:hover {
-    background: #c0392b;
-}
-
-.btn.warning {
-    background: #f39c12;
-}
-
-.btn.warning:hover {
-    background: #e67e22;
+    background: var(--primary);
+    color: var(--bg);
+    padding: 15px 0;
 }
 
 .container {
-    max-width: 1000px;
-    margin: 2rem auto;
-    padding: 0 1rem;
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
 }
 
-/* Форма добавления / редактирования */
-.add-form {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
-    display: none;
-}
-
-.add-form.active {
-    display: block;
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.3rem;
-    font-weight: 600;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-family: inherit;
-}
-
-.form-group textarea {
-    min-height: 80px;
-    resize: vertical;
-}
-
-/* Сетка для отображения новостей (на главной) */
+/* Динамическая сетка */
 .news-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.featured {
+    grid-column: span 2;
+    grid-row: span 2;
 }
 
 /* Карточки */
-.card {
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.card, .news-item {
+    background: var(--bg);
+    border-radius: var(--border-radius);
+    padding: 25px;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(153, 129, 112, 0.2);
     display: flex;
     flex-direction: column;
 }
 
-.card-body {
-    padding: 1.2rem;
-    flex: 1;
+.news-item {
+    border-left: 5px solid var(--accent);
 }
 
-.card-title {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
+.card:hover, .news-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 10px 10px 20px #d5c3b3, -10px -10px 20px #ffffff;
 }
 
-.card-text {
-    color: #555;
-    margin-bottom: 1rem;
+.card h2, .news-item h2 {
+    color: var(--accent);
+    margin-top: 0;
 }
 
-.card-meta {
-    font-size: 0.85rem;
-    color: #888;
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-}
-
+/* Элементы интерфейса */
 .badge {
     display: inline-block;
-    padding: 0.2rem 0.6rem;
+    padding: 5px 15px;
+    border-radius: 20px;
+    background: var(--bg);
+    box-shadow: var(--inner-shadow);
+    font-size: 0.7rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 15px;
+    width: fit-content;
+}
+
+/* Поля ввода */
+textarea, input, select {
+    width: 100%;
+    background: var(--bg);
+    border: none;
+    padding: 12px 20px;
     border-radius: 12px;
-    font-size: 0.75rem;
-    color: white;
-    background: #3498db;
-    margin-bottom: 0.5rem;
+    box-shadow: var(--inner-shadow);
+    color: var(--primary);
+    box-sizing: border-box;
+    margin-bottom: 15px;
 }
 
-/* Цвета категорий */
-.badge.gossip { background: #be0b0b; }
-.badge.politics { background: #31099e; }
-.badge.tech { background: #2ecc71; }
-.badge.sport { background: #f39c12; }
-.badge.culture { background: #19d7d7; }
-
-.card-actions {
-    padding: 0.8rem 1.2rem;
-    border-top: 1px solid #eee;
-    display: flex;
-    gap: 0.5rem;
+textarea:focus, input:focus {
+    outline: none;
+    border: 1px solid var(--secondary);
 }
 
-/* Список в админке */
-.admin-news-list .admin-item {
-    background: white;
-    padding: 1rem;
-    margin-bottom: 0.8rem;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Кнопки */
+button {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(67, 8, 25, 0.3);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.admin-item .info {
-    flex: 1;
+button:hover {
+    background: var(--primary);
+    transform: scale(1.02);
 }
 
-.admin-item .info strong {
-    font-size: 1.1rem;
+.comment-section {
+    margin-top: 15px;
+    border-top: 1px solid var(--secondary);
+    padding-top: 10px;
+    font-size: 0.9rem;
+    color: var(--secondary);
 }
 
-.admin-item .info .meta {
-    font-size: 0.85rem;
-    color: #666;
-    margin-top: 0.3rem;
-}
-
-.admin-item .actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-/* Футер */
-.site-footer {
-    background: #894980;
-    color: white;
-    text-align: center;
-    padding: 2rem 1rem;
-    margin-top: 3rem;
-}
-
-.site-footer p {
-    margin: 0.3rem 0;
-    font-size: 0.95rem;
-    opacity: 0.85;
-}
+.hidden { display: none !important; }

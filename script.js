@@ -1,152 +1,121 @@
-// Ключ для LocalStorage
-const STORAGE_KEY = 'newsPortalData';
+// Инициализация БД
+if (!localStorage.getItem('news')) localStorage.setItem('news', JSON.stringify([]));
+let currentUser = JSON.parse(localStorage.getItem('session')) || null;
 
-// Загрузка новостей: сначала пытаемся взять из localStorage,
-// если пусто — загружаем из data.json и сохраняем в localStorage
-async function loadNews() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-        try {
-            return JSON.parse(stored);
-        } catch (e) {
-            console.error('Ошибка парсинга JSON из localStorage', e);
-            return await fetchAndInit();
-        }
+// Функция входа
+function login() {
+    const name = document.getElementById('username').value;
+    const role = document.getElementById('userRole').value;
+    if (!name) return alert("Введите имя");
+    
+    currentUser = { name, role, subscriptions: { authors: [], categories: [] } };
+    localStorage.setItem('session', JSON.stringify(currentUser));
+    updateUI();
+}
+
+function logout() {
+    localStorage.removeItem('session');
+    currentUser = null;
+    updateUI();
+}
+
+function updateUI() {
+    const authBlock = document.getElementById('authBlock');
+    const userInfo = document.getElementById('userInfo');
+    const editorPanel = document.getElementById('editorPanel');
+    const feedBtn = document.getElementById('feedBtn');
+
+    if (currentUser) {
+        authBlock.classList.add('hidden');
+        userInfo.classList.remove('hidden');
+        document.getElementById('welcomeText').innerText = `${currentUser.name} (${currentUser.role})`;
+        if (currentUser.role === 'editor' || currentUser.role === 'admin') editorPanel.classList.remove('hidden');
+        feedBtn.classList.remove('hidden');
     } else {
-        return await fetchAndInit();
+        authBlock.classList.remove('hidden');
+        userInfo.classList.add('hidden');
+        editorPanel.classList.add('hidden');
+        feedBtn.classList.add('hidden');
     }
+    renderNews();
 }
 
-// Загрузка из data.json и сохранение в localStorage
-async function fetchAndInit() {
-    try {
-        const response = await fetch('data.json');
-        if (!response.ok) throw new Error('Не удалось загрузить data.json');
-        const data = await response.json();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        return data;
-    } catch (error) {
-        console.error('Ошибка загрузки начальных данных:', error);
-        return [];
-    }
-}
+// Работа с новостями
+function addNews() {
+    const title = document.getElementById('newsTitle').value;
+    const content = document.getElementById('newsContent').value;
+    const category = document.getElementById('newsCategory').value;
 
-// Сохранение массива новостей в LocalStorage
-function saveNews(newsArray) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newsArray));
-}
-
-// Генерация нового ID
-function getNextId(newsArray) {
-    if (newsArray.length === 0) return 1;
-    return Math.max(...newsArray.map(item => item.id)) + 1;
-}
-
-// Отрисовка карточек новостей
-function renderNews(newsArray) {
-    const container = document.getElementById('newsContainer');
-    if (!newsArray.length) {
-        container.innerHTML = '<p>Новостей пока нет. Добавьте первую!</p>';
-        return;
-    }
-
-    const categoryNames = {
-        tech: 'Технологии',
-        politics: 'Политика',
-        sport: 'Спорт',
-        culture: 'Культура',
-        gossip: 'Сплетни'
+    const news = JSON.parse(localStorage.getItem('news'));
+    const newItem = {
+        id: Date.now(),
+        title,
+        content,
+        category,
+        author: currentUser.name,
+        likes: 0,
+        comments: [],
+        approved: currentUser.role === 'admin' // Админу не нужна модерация
     };
 
-    let html = '';
-    newsArray.forEach(article => {
-        const catClass = article.category;
-        const catName = categoryNames[article.category] || article.category;
+    news.push(newItem);
+    localStorage.setItem('news', JSON.stringify(news));
+    renderNews();
+}
 
-        html += `
-            <div class="card" data-id="${article.id}">
-                <div class="card-body">
-                    <span class="badge ${catClass}">${catName}</span>
-                    <h3 class="card-title">${escapeHTML(article.title)}</h3>
-                    <p class="card-text">${escapeHTML(article.text)}</p>
-                    <div class="card-meta">
-                        <span>${article.date}</span>
-                        <span>Автор: ${escapeHTML(article.author)}</span>
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <button class="btn danger" onclick="deleteNews(${article.id})">Удалить</button>
-                </div>
+function toggleLike(id) {
+    let news = JSON.parse(localStorage.getItem('news'));
+    const item = news.find(n => n.id === id);
+    item.likes++;
+    localStorage.setItem('news', JSON.stringify(news));
+    renderNews();
+}
+
+function renderNews(filter = 'all') {
+    const container = document.getElementById('newsContainer');
+    let news = JSON.parse(localStorage.getItem('news'));
+
+    // Фильтрация
+    if (filter !== 'all' && filter !== 'my-feed') {
+        news = news.filter(n => n.category === filter);
+    }
+
+    container.innerHTML = news.map(item => `
+        <div class="news-item">
+            <small>${item.category} | Автор: ${item.author}</small>
+            <h2>${item.title}</h2>
+            <p>${item.content}</p>
+            <button onclick="toggleLike(${item.id})">❤️ ${item.likes}</button>
+            
+            <div class="comment-section">
+                <strong>Комментарии:</strong>
+                ${item.comments.map(c => `<div>${c.user}: ${c.text}</div>`).join('')}
+                ${currentUser ? `
+                    <input type="text" placeholder="Ваш коммент" onchange="addComment(${item.id}, this.value)">
+                ` : ''}
             </div>
-        `;
-    });
-    container.innerHTML = html;
+            
+            ${currentUser?.role === 'admin' ? `
+                <button style="background:red" onclick="deleteNews(${item.id})">Удалить (Админ)</button>
+            ` : ''}
+        </div>
+    `).join('');
 }
 
-// Экранирование HTML
-function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+function addComment(newsId, text) {
+    let news = JSON.parse(localStorage.getItem('news'));
+    const item = news.find(n => n.id === newsId);
+    item.comments.push({ user: currentUser.name, text });
+    localStorage.setItem('news', JSON.stringify(news));
+    renderNews();
 }
 
-// Удаление новости по ID
 function deleteNews(id) {
-    let news = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    news = news.filter(article => article.id !== id);
-    saveNews(news);
-    renderNews(news);
+    let news = JSON.parse(localStorage.getItem('news'));
+    news = news.filter(n => n.id !== id);
+    localStorage.setItem('news', JSON.stringify(news));
+    renderNews();
 }
 
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', async () => {
-    // Загружаем новости (асинхронно, если нужен fetch)
-    let news = await loadNews();
-    renderNews(news);
-
-    // Обработчики событий
-    document.getElementById('toggleFormBtn').addEventListener('click', () => {
-        document.getElementById('addForm').classList.toggle('active');
-    });
-
-    document.getElementById('cancelBtn').addEventListener('click', () => {
-        document.getElementById('addForm').classList.remove('active');
-        document.getElementById('newsForm').reset();
-    });
-
-    document.getElementById('newsForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const title = document.getElementById('title').value.trim();
-        const category = document.getElementById('category').value;
-        const text = document.getElementById('text').value.trim();
-        const author = document.getElementById('author').value.trim();
-
-        if (!title || !text || !author) return;
-
-        const newsArray = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        const newArticle = {
-            id: getNextId(newsArray),
-            title,
-            category,
-            text,
-            author,
-            date: new Date().toISOString().split('T')[0]
-        };
-
-        newsArray.push(newArticle);
-        saveNews(newsArray);
-        renderNews(newsArray);
-
-        // Сброс формы и скрытие
-        document.getElementById('newsForm').reset();
-        document.getElementById('addForm').classList.remove('active');
-    });
-
-    document.getElementById('resetBtn').addEventListener('click', async () => {
-        if (confirm('Удалить все изменения и вернуть демо-новости?')) {
-            localStorage.removeItem(STORAGE_KEY);
-            const freshNews = await loadNews(); // снова загрузит из data.json
-            renderNews(freshNews);
-        }
-    });
-});
+// Первичный запуск
+updateUI();
